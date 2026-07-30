@@ -1,0 +1,33 @@
+# ==============================================================================
+# TRƯỜNG HỢP 03: FLUTTER CHỈ DEPLOY KHIN GẮN GIT TAG RELEASE (v1.0.0, v2.0.0...)
+# ==============================================================================
+# 🎯 Dành cho ai: Dự án quản lý phiên bản nghiêm ngặt. Push code thường chỉ kiểm tra
+#                lỗi và xuất APK thử nghiệm. Chỉ khi chốt phiên bản (Tạo Tag) mới
+#                tiến hành upload lên ChPlay / App Store.
+# ⚙️ Chức năng  :
+#   - Push code / PR hàng ngày ➔ Chỉ Lint + Test + Build APK lấy file Artifact.
+#   - Push Git Tag dạng `v*`   ➔ Tự động kích hoạt luồng Deploy đầy đủ lên ChPlay/TestFlight.
+# 📍 Vị trí tạo : Copy toàn bộ file này vào <repo-app>/.github/workflows/ci.yml
+# ==============================================================================
+
+name: CI/CD Pipeline (Tag Release)
+
+on:
+  push:
+    branches: [main, develop]
+    tags:
+      - 'v*.*.*'  # Kích hoạt khi đẩy tag dạng v1.0.0, v2.1.0-beta,...
+  pull_request:
+    branches: [main]
+
+jobs:
+  mobile-ci:
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      # Chỉ bật iOS và Deploy khi là sự kiện Push Tag (ví dụ: git tag v1.0.0 & git push origin v1.0.0)
+      build_ios: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      run_deploy: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      deploy_target: play_internal # Hoặc 'testflight'
+    secrets: inherit

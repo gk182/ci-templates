@@ -1,0 +1,27 @@
+# ==============================================================================
+# TRƯỜNG HỢP 01: APP FLUTTER ĐƠN GIẢN (BUILD KIỂM TRA & TẢI FILE APK ARTIFACT)
+# ==============================================================================
+# 🎯 Dành cho ai: Dự án Flutter mới bắt đầu, ứng dụng cá nhân/đồ án, hoặc dự án
+#                chưa muốn cài đặt chìa khóa Deploy (Firebase / Play Store).
+# ⚙️ Chức năng  : Tự động chạy Lint + Unit Test, tự động Build APK Android & xuất
+#                thành file tải về (Artifacts) trong tab Actions của GitHub.
+# 📍 Vị trí tạo : Copy toàn bộ file này vào <repo-app>/.github/workflows/ci.yml
+# ==============================================================================
+
+name: CI (Flutter Basic Build)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  mobile-ci:
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"   # Đổi thành phiên bản Flutter app bạn đang dùng
+      build_ios: false            # Đổi thành true nếu dự án cần build iOS (cần macOS runner)
+      run_deploy: false           # Đặt false để chỉ build lấy file APK, không tự động deploy
+    secrets: inherit

@@ -29,16 +29,20 @@ ci-templates/
 │   ├── 03-setup-firebase.md
 │   └── 04-troubleshooting.md
 └── examples/
-    ├── caller-workflow-flutter.yml   # Ví dụ file cho project Flutter
-    └── caller-workflow-android.yml   # Ví dụ file cho project Android native
+    ├── 01-flutter-basic.yml            # Flutter cơ bản (Build APK, không Deploy)
+    ├── 02-flutter-multi-branch.yml     # Flutter đa nhánh (develop -> Firebase, main -> Stores)
+    ├── 03-flutter-tag-release.yml      # Flutter chỉ Deploy khi tạo Git Tag Release (v1.0.0...)
+    ├── 04-native-android.yml           # App Native Android (Kotlin/Java)
+    └── 05-native-ios.yml               # App Native iOS (Swift)
 ```
 
 ## Dùng như thế nào (cho project mới)
 
 1. Tạo file `.github/workflows/ci.yml` trong repo app của bạn.
-2. Copy nội dung từ `examples/caller-workflow-flutter.yml`, chỉnh lại 2-3 biến (`flutter_version`, `android_package_name`...).
-3. Thêm các secret cần thiết vào **Settings → Secrets and variables → Actions** của repo app (xem mục "Secrets cần thiết" bên dưới).
-4. Push code — CI tự chạy.
+2. Chọn 1 file ví dụ phù hợp trong thư mục `examples/` (ví dụ: `examples/01-flutter-basic.yml`), copy nội dung vào file `ci.yml` của bạn.
+3. Chỉnh sửa 2-3 tham số trong mục `with:` (như `flutter_version`, `build_ios`...).
+4. Thêm các Secret cần thiết vào **Settings → Secrets and variables → Actions** của repo app.
+5. Push code — CI tự động thực thi.
 
 Khi cần sửa logic CI (thêm bước, đổi cách deploy...), chỉ sửa **1 chỗ** ở repo `ci-templates` này —
 tất cả project gọi vào sẽ tự nhận thay đổi ở lần chạy tiếp theo (nếu dùng tag `@main`).

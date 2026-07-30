@@ -1,0 +1,60 @@
+# ==============================================================================
+# TRƯỜNG HỢP 02: FLUTTER ĐA MÔI TRƯỜNG (DEVELOP -> TESTER, MAIN -> PRODUCTION)
+# ==============================================================================
+# 🎯 Dành cho ai: Đội ngũ phát triển chuyên nghiệp theo quy trình GitFlow chuẩn.
+# ⚙️ Chức năng  :
+#   - Push vào nhánh 'develop' ➔ Tự động build & Deploy bản Test lên Firebase cho Testers.
+#   - Push vào nhánh 'main'    ➔ Tự động build & Deploy bản Release lên Google Play Store / TestFlight.
+#   - Tạo Pull Request         ➔ Chỉ chạy Lint + Test để kiểm tra chất lượng code (không deploy).
+# 📍 Vị trí tạo : Copy toàn bộ file này vào <repo-app>/.github/workflows/ci.yml
+# ==============================================================================
+
+name: CI/CD Pipeline (Multi-Branch)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # JOB 1: Tự động Deploy bản thử nghiệm (Firebase) khi push vào nhánh DEVELOP
+  # ----------------------------------------------------------------------------
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: false             # Đội Dev có thể tắt iOS để CI chạy nhanh hơn
+      run_deploy: true
+      deploy_target: firebase      # Đẩy bản APK test lên Firebase App Distribution
+    secrets: inherit
+
+  # ----------------------------------------------------------------------------
+  # JOB 2: Tự động Deploy bản chính thức (Stores) khi push vào nhánh MAIN
+  # ----------------------------------------------------------------------------
+  deploy-prod:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: true              # Đã lên Main thì bật iOS để build cả 2 nền tảng
+      run_deploy: true
+      deploy_target: play_internal # Hoặc 'testflight' tùy theo nền tảng bạn muốn đẩy
+    secrets: inherit
+
+  # ----------------------------------------------------------------------------
+  # JOB 3: Kiểm tra chất lượng code khi tạo Pull Request (KHÔNG Deploy)
+  # ----------------------------------------------------------------------------
+  pr-check:
+    if: github.event_name == 'pull_request'
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: false
+      run_deploy: false
+    secrets: inherit

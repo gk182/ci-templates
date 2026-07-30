@@ -7,7 +7,7 @@
 #   uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
 #   with: ...
 #   secrets: ...
-# Xem file mau day du trong examples/caller-workflow-flutter.yml
+# Xem file mẫu đầy đủ trong thư mục examples/ (ví dụ: examples/01-flutter-basic.yml)
 #
 # ⚠️ QUAN TRỌNG: workflow này tự checkout repo template tại 4 chỗ
 # (job lint-test, build-android, build-ios, deploy) để lấy scripts/ và fastlane/.

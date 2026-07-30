@@ -1,0 +1,25 @@
+# ==============================================================================
+# TRƯỜNG HỢP 04: ĐÀNH CHO ỨNG DỤNG NATIVE ANDROID THUẦN (KOTLIN / JAVA)
+# ==============================================================================
+# 🎯 Dành cho ai: Các dự án di động viết hoàn toàn bằng Android Native (không dùng Flutter).
+# ⚙️ Chức năng  : Tự động cài đặt Java JDK 17, Gradle Cache, Build APK/AAB và Deploy.
+# 📍 Vị trí tạo : Copy toàn bộ file này vào <repo-app>/.github/workflows/ci.yml
+# ==============================================================================
+
+name: Native Android CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  android-ci:
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: android
+      build_ios: false
+      run_deploy: ${{ github.ref == 'refs/heads/main' }} # Chỉ deploy khi push vào main
+      deploy_target: play_internal                       # play_internal | firebase | none
+    secrets: inherit

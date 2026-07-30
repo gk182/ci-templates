@@ -1,0 +1,25 @@
+# ==============================================================================
+# TRƯỜNG HỢP 05: DÀNH CHO ỨNG DỤNG NATIVE IOS THUẦN (SWIFT / OBJECTIVE-C)
+# ==============================================================================
+# 🎯 Dành cho ai: Các dự án di động viết hoàn toàn bằng iOS Native (Xcode / Swift).
+# ⚙️ Chức năng  : Chạy trên macOS runner, cài đặt CocoaPods Cache, Build IPA và Deploy TestFlight.
+# 📍 Vị trí tạo : Copy toàn bộ file này vào <repo-app>/.github/workflows/ci.yml
+# ==============================================================================
+
+name: Native iOS CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ios-ci:
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: ios
+      build_ios: true
+      run_deploy: ${{ github.ref == 'refs/heads/main' }} # Chỉ deploy khi push vào main
+      deploy_target: testflight                          # testflight | none
+    secrets: inherit
