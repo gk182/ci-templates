@@ -1,7 +1,4 @@
 # File mau cho project Android native (khong dung Flutter).
-# Luu y: cac script build-android.sh / setup-flutter.sh hien tai viet cho Flutter.
-# Voi Android native, ban can them 1 nhanh xu ly rieng trong scripts/build-android.sh
-# (vi du: dung ./gradlew assembleRelease thay vi flutter build apk).
 
 name: CI
 
@@ -19,6 +16,5 @@ jobs:
       build_ios: false
       run_deploy: ${{ github.ref == 'refs/heads/main' }}
       deploy_target: play_internal
-    secrets:
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    secrets: inherit
+

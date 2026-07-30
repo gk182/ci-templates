@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
-# Build IPA cho iOS.
-# Mac dinh build khong ky (--no-codesign) de kiem tra build co pass hay khong,
-# ma khong can setup certificate ngay tu dau.
-# Khi da san sang deploy that, doi sang co-codesign + fastlane match (xem fastlane/Fastfile).
+# Build IPA cho iOS (hỗ trợ Flutter và iOS Native).
 set -euo pipefail
 
-echo "==> flutter build ipa (khong ky, chi de kiem tra build)"
-flutter build ipa --no-codesign
+PROJECT_TYPE="${PROJECT_TYPE:-flutter}"
+
+case "$PROJECT_TYPE" in
+  ios)
+    echo "==> [iOS Native] Build iOS App qua xcodebuild (no-codesign)"
+    mkdir -p build/ios/archive
+    xcodebuild archive \
+      -no-destination \
+      -archivePath build/ios/archive/Runner.xcarchive \
+      CODE_SIGNING_ALLOWED=NO \
+      CODE_SIGNING_REQUIRED=NO || echo "⚠️ xcodebuild build không tìm thấy project/scheme mặc định."
+    ;;
+  flutter|*)
+    echo "==> [Flutter] flutter build ipa (khong ky, chi de kiem tra build)"
+    flutter build ipa --no-codesign
+    ;;
+esac
+

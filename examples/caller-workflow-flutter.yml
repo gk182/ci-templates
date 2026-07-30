@@ -18,9 +18,26 @@ jobs:
       build_ios: true                                   # false neu chua can build iOS
       run_deploy: ${{ github.ref == 'refs/heads/main' }} # chi deploy khi push vao main
       deploy_target: firebase                            # firebase | testflight | play_internal | none
-    secrets:
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-      APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+    
+    # Khuyen nghi: dung "secrets: inherit" de ke thua toan bo Secret tu repo app sang reusable workflow
+    secrets: inherit
+
+    # Hoac neu muon liet ke thu cong (can dung dung ten secret):
+    # secrets:
+    #   ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    #   ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    #   PLAY_STORE_JSON_KEY_BASE64: ${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}
+    #   ANDROID_PACKAGE_NAME: ${{ secrets.ANDROID_PACKAGE_NAME }}
+    #   FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+    #   FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+    #   FIREBASE_TESTER_GROUP: ${{ secrets.FIREBASE_TESTER_GROUP }}
+    #   APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+    #   APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+    #   APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    #   MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+    #   MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+    #   APPLE_ID: ${{ secrets.APPLE_ID }}
+    #   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    #   ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+    #   IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+

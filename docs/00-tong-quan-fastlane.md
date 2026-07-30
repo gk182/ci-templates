@@ -22,9 +22,11 @@ cài đúng version Fastlane mỗi khi chạy, không cần bạn cài thủ cô
 - Nếu muốn chạy Fastlane **trên máy cá nhân** (để test trước khi đẩy lên CI), làm như sau:
 
 ```bash
-# 1. Cài Ruby (nếu máy chưa có) — khuyên dùng rbenv hoặc rvm để quản lý version
-#    macOS: brew install rbenv
-#    Sau đó: rbenv install 3.2.0 && rbenv local 3.2.0
+# 1. Cài Ruby (nếu máy chưa có)
+#    - Windows: cài RubyInstaller, rồi mở terminal mới để PATH nhận `ruby`/`gem`/`bundle`
+#    - macOS: khuyên dùng rbenv hoặc rvm để quản lý version
+#      brew install rbenv
+#      rbenv install 3.2.0 && rbenv local 3.2.0
 
 # 2. Cài Bundler
 gem install bundler

@@ -18,6 +18,24 @@ thiếu file:
 - Với Android release (AAB): cần có `ANDROID_KEYSTORE_BASE64` để build bản ký, nếu không sẽ
   chỉ build APK debug (không có AAB).
 
+## `bundle` khong duoc nhan ra
+
+Lỗi này xảy ra trước khi Fastlane kịp chạy, thường là do máy chưa cài Ruby/Bundler hoặc PATH
+chưa được nạp lại sau khi cài.
+
+- Kiểm tra nhanh: `ruby -v`, `gem -v`, `bundle -v`
+- Nếu thiếu Ruby trên Windows, cài RubyInstaller rồi mở lại PowerShell/terminal mới
+- Sau đó chạy lại:
+
+```bash
+gem install bundler
+bundle install
+bundle exec fastlane doctor
+```
+
+Nếu `gem install bundler` xong mà `bundle` vẫn không nhận, mở terminal mới hoặc kiểm tra
+PATH của RubyInstaller đã được thêm đúng chưa.
+
 ## Chạy thử local trước khi đẩy lên CI
 
 ```bash
