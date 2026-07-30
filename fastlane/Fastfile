@@ -112,14 +112,15 @@ platform :android do
     cred_file = require_file!(ENV["FIREBASE_SERVICE_ACCOUNT_PATH"], "Firebase service account JSON", "docs/03-setup-firebase.md")
     apk_path  = require_build_artifact!("../../dist/**/*.apk", "Android APK")
 
-    # Luu y: Firebase da khai tu cach xac thuc bang firebase_cli_token (FIREBASE_TOKEN),
-    # nen o day dung service_credentials_file thay vi firebase_cli_token.
+    notes = ENV["RELEASE_NOTES"] || last_git_commit[:message] rescue "Automated build from CI/CD Pipeline"
+
     firebase_app_distribution(
       app: app_id,
       service_credentials_file: cred_file,
       android_artifact_type: "APK",
       android_artifact_path: apk_path,
-      groups: ENV["FIREBASE_TESTER_GROUP"] || "internal-testers"
+      groups: ENV["FIREBASE_TESTER_GROUP"] || "internal-testers",
+      release_notes: notes
     )
   end
 

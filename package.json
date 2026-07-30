@@ -1,0 +1,26 @@
+{
+  "name": "ci-templates",
+  "version": "1.0.0",
+  "description": "Mobile CI/CD Reusable Workflows & Interactive CLI Generator",
+  "main": "bin/init.js",
+  "bin": {
+    "ci-init": "bin/init.js"
+  },
+  "scripts": {
+    "init": "node bin/init.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gk182/ci-templates.git"
+  },
+  "keywords": [
+    "ci-cd",
+    "flutter",
+    "android",
+    "ios",
+    "github-actions",
+    "fastlane"
+  ],
+  "author": "gk182",
+  "license": "MIT"
+}
