@@ -1,138 +1,170 @@
-# ci-templates
+# Mobile CI/CD Reusable Workflows & Interactive CLI 🚀
 
-Repo chứa **CI/CD dùng chung** cho các app mobile (ưu tiên Flutter, hỗ trợ thêm Android/iOS native).
-Mục tiêu: mỗi project app chỉ cần **~10 dòng YAML** để có đầy đủ lint → test → build → deploy,
-không phải copy-paste logic CI qua từng repo.
+[![GitHub Actions Status](https://img.shields.io/badge/GitHub_Actions-Enabled-blue?logo=githubactions&logoColor=white)](https://github.com/gk182/ci-templates/actions)
+[![Flutter Supported](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Fastlane](https://img.shields.io/badge/Fastlane-Automated-00F5D4?logo=fastlane&logoColor=black)](https://fastlane.tools)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-## Cấu trúc repo
+An end-to-end, zero-config **Mobile CI/CD Pipeline Generator and Reusable GitHub Actions Workflow** tailored for **Flutter, Native Android, and Native iOS** projects.
 
+Setup your entire build, test, and automated release pipeline to **Firebase App Distribution, Google Play Console, and Apple TestFlight** in under **30 seconds** with **~10 lines of YAML**.
+
+---
+
+## ✨ Key Features
+
+- ⚡ **Zero-Config Interactive CLI**: Generate fully customized GitHub Actions workflows using an interactive terminal interface (`npx`).
+- 🔍 **Auto SDK & Version Detection**: Automatically parses `pubspec.yaml` and environment variables to match your exact Flutter SDK version.
+- 📦 **Multi-Tier Pipeline Caching**: Pre-configured caching for **Flutter Pub**, **Gradle**, and **CocoaPods**—reducing build times from **8–10 minutes down to 2–3 minutes**.
+- 🔐 **Secure Credential Decoding**: Automatically decodes Base64 keystores, service accounts, and API keys at runtime without committing secrets.
+- 🚀 **Multi-Target Deployment**: Support for Firebase App Distribution, Google Play Internal Testing, and Apple TestFlight via Fastlane.
+- 🛡️ **Fail-Fast Defensive Execution**: Provides crystal-clear error messages and links to documentation when secrets or parameters are missing.
+
+---
+
+## ⚡ Quick Start
+
+Run the interactive CLI directly inside your mobile application root directory:
+
+```bash
+npx github:gk182/ci-templates
 ```
+
+### 🖥️ Interactive CLI Preview
+
+```text
+┌──────────────────────────────────────────────────────────┐
+│  MOBILE CI/CD WORKFLOW GENERATOR (gk182/ci-templates)    │
+└──────────────────────────────────────────────────────────┘
+
+● Detected Flutter Version: 3.29.0
+
+? Select CI/CD Pipeline Configuration: (Use ↑ ↓ keys, Enter to confirm)
+
+  ❯ Flutter Basic          Build APK artifacts on Push/PR (No auto deployment)
+    Flutter Multi-Branch   develop -> Firebase App Distribution, main -> Play Store / TestFlight
+    Flutter Tag Release    Auto Deploy to Stores only when pushing Git Tags (v*.*.*)
+    Native Android         Pure Android Studio Project (Gradle / Kotlin / Java)
+    Native iOS             Pure Xcode Project (Swift / Fastlane / TestFlight)
+```
+
+The CLI automatically:
+1. 🔍 Detects your local / project **Flutter SDK version**.
+2. ⚡ Generates `.github/workflows/ci.yml` pre-configured for your project architecture.
+3. 📝 Creates a standardized `release_notes.txt` template for store deployment release logs.
+
+---
+
+## 🔄 Pipeline Architecture
+
+```mermaid
+flowchart TD
+    A[Push / Pull Request] --> B[1. Lint & Test Job]
+    
+    subgraph Parallel Build Phase
+        B --> C[2. Build Android Job]
+        B --> D[3. Build iOS Job]
+    end
+    
+    C -->|Upload APK/AAB Artifacts| E[4. Automated Deploy Job]
+    D -->|Upload IPA Artifacts| E
+    
+    subgraph Deployment Targets
+        E -->|deploy_target: firebase| F[Firebase App Distribution]
+        E -->|deploy_target: play_internal| G[Google Play Internal Track]
+        E -->|deploy_target: testflight| H[Apple TestFlight]
+    end
+```
+
+---
+
+## 📁 Repository Structure
+
+```text
 ci-templates/
+├── bin/
+│   └── init.js                 # Interactive CLI generator (npx runner)
 ├── .github/workflows/
-│   └── mobile-ci.yml          # Reusable workflow chính (entry point)
-├── Gemfile                     # Ghim version Fastlane, tự cài qua Bundler (không cần cài tay)
+│   └── mobile-ci.yml           # Central Reusable Workflow (Entrypoint)
 ├── fastlane/
-│   ├── Fastfile                 # Lane build/test/deploy, tự kiểm tra thiếu gì và báo rõ ràng
-│   ├── Pluginfile                # Khai báo plugin firebase_app_distribution
-│   ├── Appfile.example            # Copy thành Appfile trong repo app, điền package/bundle id
-│   └── Matchfile.example          # Copy thành Matchfile trong repo app, cấu hình certificate iOS
+│   ├── Fastfile                # Fastlane deployment automation engine
+│   ├── Pluginfile               # Fastlane plugin declarations
+│   ├── Appfile.example         # App bundle/package ID template
+│   └── Matchfile.example       # iOS Fastlane Match certificate template
 ├── scripts/
-│   ├── setup-flutter.sh        # Cài Flutter SDK + cache pub
-│   ├── run-tests.sh            # Chạy flutter analyze + flutter test
-│   ├── build-android.sh        # Build APK/AAB
-│   ├── build-ios.sh            # Build IPA (cần macOS runner)
-│   └── decode-credentials.sh   # Giải mã secret base64 thành file, tự bỏ qua nếu thiếu
-├── docs/
-│   ├── 00-tong-quan-fastlane.md
-│   ├── 01-setup-play-store.md
-│   ├── 02-setup-testflight.md
-│   ├── 03-setup-firebase.md
-│   └── 04-troubleshooting.md
-└── examples/
-    ├── 01-flutter-basic.yml            # Flutter cơ bản (Build APK, không Deploy)
-    ├── 02-flutter-multi-branch.yml     # Flutter đa nhánh (develop -> Firebase, main -> Stores)
-    ├── 03-flutter-tag-release.yml      # Flutter chỉ Deploy khi tạo Git Tag Release (v1.0.0...)
-    ├── 04-native-android.yml           # App Native Android (Kotlin/Java)
-    └── 05-native-ios.yml               # App Native iOS (Swift)
+│   ├── setup-flutter.sh        # SDK setup and pub dependency caching
+│   ├── run-tests.sh            # Flutter analyze & unit test runner
+│   ├── build-android.sh        # Release APK / AAB builder
+│   ├── build-ios.sh            # IPA archiver & builder
+│   └── decode-credentials.sh   # Base64 secret decoder utility
+├── docs/                       # Comprehensive step-by-step setup guides
+└── examples/                   # Preset workflow configuration templates
 ```
 
-## Dùng như thế nào (cho project mới)
+---
 
-1. Tạo file `.github/workflows/ci.yml` trong repo app của bạn.
-2. Chọn 1 file ví dụ phù hợp trong thư mục `examples/` (ví dụ: `examples/01-flutter-basic.yml`), copy nội dung vào file `ci.yml` của bạn.
-3. Chỉnh sửa 2-3 tham số trong mục `with:` (như `flutter_version`, `build_ios`...).
-4. Thêm các Secret cần thiết vào **Settings → Secrets and variables → Actions** của repo app.
-5. Push code — CI tự động thực thi.
+## 📖 Setup & Configuration Guides
 
-Khi cần sửa logic CI (thêm bước, đổi cách deploy...), chỉ sửa **1 chỗ** ở repo `ci-templates` này —
-tất cả project gọi vào sẽ tự nhận thay đổi ở lần chạy tiếp theo (nếu dùng tag `@main`).
+Detailed guides for setting up service accounts and credentials:
 
-> Khuyến nghị: dùng `@main` khi mới bắt đầu để dễ cập nhật. Khi đã ổn định, ghim theo tag
-> (ví dụ `@v1.2.0`) cho các project quan trọng để tránh thay đổi bất ngờ làm vỡ CI.
-
-## Luồng CI/CD
-
-```
-push / pull_request
-   │
-   ├─ lint-test  (flutter analyze + flutter test, chạy trên ubuntu, nhanh & rẻ)
-   │
-   ├─ build-android  (flutter build apk/appbundle)
-   ├─ build-ios      (flutter build ipa, chỉ chạy trên macOS runner, chỉ khi input ios=true)
-   │
-   └─ deploy   (chỉ chạy khi push nhánh main/tag, và run_deploy=true)
-        ├─ Android → Firebase App Distribution / Play Console internal track
-        └─ iOS     → TestFlight qua fastlane pilot
-```
-
-`build-android` và `build-ios` chạy **song song** (không phụ thuộc nhau) để tiết kiệm thời gian.
-
-## Tài liệu setup chi tiết (đọc trước khi deploy thật)
-
-| Tài liệu | Nội dung |
+| Guide | Description |
 |---|---|
-| [`docs/00-tong-quan-fastlane.md`](docs/00-tong-quan-fastlane.md) | Fastlane là gì, cách nó tự cài đặt qua Bundler, chạy thử local |
-| [`docs/01-setup-play-store.md`](docs/01-setup-play-store.md) | Setup Google Play — cả trường hợp app mới lẫn app đã có |
-| [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) | Setup TestFlight — **cần Apple Developer Program ($99/năm), yêu cầu bắt buộc từ Apple** |
-| [`docs/03-setup-firebase.md`](docs/03-setup-firebase.md) | Setup Firebase App Distribution — cả trường hợp project mới lẫn đã có |
-| [`docs/04-troubleshooting.md`](docs/04-troubleshooting.md) | Lỗi thường gặp và cách xử lý |
-
-Sau khi thêm secret, chạy `bundle exec fastlane doctor` để kiểm tra nhanh xem đã đủ chưa
-(chi tiết trong `docs/00-tong-quan-fastlane.md`) — lệnh này **không** build, **không** deploy
-thật, chỉ báo ✅/⚠️ cho từng mục.
-
-## 📋 Bảng tra cứu Tham số Input (`with:`)
-
-Khai báo các tham số này trong mục `with:` của file gọi workflow ở repo app:
-
-| Tham số Input | Kiểu dữ liệu | Mặc định | Mô tả |
-|---|---|---|---|
-| `project_type` | `string` | **Bắt buộc** | Loại dự án: `flutter`, `android`, hoặc `ios`. |
-| `flutter_version` | `string` | `"3.24.0"` | Phiên bản Flutter SDK sử dụng khi build. |
-| `build_ios` | `boolean` | `false` | Có build bản iOS không (`true` cần runner `macos-14`, tốn thêm thời gian & chi phí). |
-| `run_deploy` | `boolean` | `false` | Cho phép chạy bước Deploy (`true` cho push `main`/`tag`, `false` cho PR/test). |
-| `deploy_target` | `string` | `"none"` | Đích đến khi deploy: `firebase`, `play_internal`, `testflight`, hoặc `none`. |
+| 📘 [`docs/00-tong-quan-fastlane.md`](docs/00-tong-quan-fastlane.md) | Fastlane architecture & local test execution |
+| 🤖 [`docs/01-setup-play-store.md`](docs/01-setup-play-store.md) | Google Play Console Service Account & API Key Setup |
+| 🍎 [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) | App Store Connect API & Fastlane Match Setup |
+| 🔥 [`docs/03-setup-firebase.md`](docs/03-setup-firebase.md) | Firebase App Distribution Service Account Setup |
+| 🛠️ [`docs/04-troubleshooting.md`](docs/04-troubleshooting.md) | Frequently encountered CI/CD errors & fixes |
 
 ---
 
-## 🔐 Bảng tra cứu Secrets (`secrets:`)
+## 📋 Workflow Input Parameters (`with:`)
 
-Bảng đầy đủ — chỉ cần khai báo secret của nền tảng bạn thực sự dùng, không cần khai hết:
-
-| Secret | Phân loại | Mô tả & Công dụng | Hướng dẫn |
-|---|---|---|---|
-| `ANDROID_KEYSTORE_BASE64` | Android Build | Keystore mã hóa dạng Base64 dùng để ký Release APK/AAB | — |
-| `ANDROID_KEYSTORE_PASSWORD` | Android Build | Mật khẩu giải mã Keystore | — |
-| `PLAY_STORE_JSON_KEY_BASE64` | Google Play | File JSON Service Account mã hóa Base64 để gọi API Google Play | `docs/01-setup-play-store.md` |
-| `ANDROID_PACKAGE_NAME` | Google Play | Package Name ứng dụng Android (VD: `com.example.myapp`) | `docs/01-setup-play-store.md` |
-| `FIREBASE_APP_ID` | Firebase | App ID trên Firebase Console (VD: `1:1234:android:abcd`) | `docs/03-setup-firebase.md` |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | Firebase | Service Account JSON Base64 dùng xác thực Firebase | `docs/03-setup-firebase.md` |
-| `FIREBASE_TESTER_GROUP` | Firebase | *(Tùy chọn)* Tên nhóm Testers nhận bản build (VD: `internal-testers`) | `docs/03-setup-firebase.md` |
-| `APP_STORE_CONNECT_API_KEY_BASE64` | TestFlight | Private Key API (.p8) mã hóa Base64 | `docs/02-setup-testflight.md` |
-| `APP_STORE_CONNECT_KEY_ID` | TestFlight | Key ID tạo trên App Store Connect | `docs/02-setup-testflight.md` |
-| `APP_STORE_CONNECT_ISSUER_ID` | TestFlight | Issuer ID của tổ chức Developer | `docs/02-setup-testflight.md` |
-| `MATCH_PASSWORD` | TestFlight | Mật khẩu giải mã Certificate/Provisioning (Fastlane Match) | `docs/02-setup-testflight.md` |
-| `MATCH_GIT_URL` | TestFlight | Git URL chứa kho Certificate riêng | `docs/02-setup-testflight.md` |
-| `APPLE_ID` | TestFlight | Email tài khoản Apple Developer | `docs/02-setup-testflight.md` |
-| `APPLE_TEAM_ID` | TestFlight | Team ID trên Developer Portal | `docs/02-setup-testflight.md` |
-| `ITC_TEAM_ID` | TestFlight | Team ID trên App Store Connect | `docs/02-setup-testflight.md` |
-| `IOS_BUNDLE_ID` | TestFlight | Bundle Identifier app iOS (VD: `com.example.myapp.ios`) | `docs/02-setup-testflight.md` |
-
-> ⚠️ **Lưu ý**: TestFlight **bắt buộc** phải có tài khoản Apple Developer Program (trả phí $99/năm). Nếu chưa có, bạn vẫn build được file iOS (`build_ios: true`) và để `deploy_target: none`.
+| Input Parameter | Data Type | Required | Default | Description |
+|---|---|---|---|---|
+| `project_type` | `string` | **Yes** | — | Project type: `flutter`, `android`, or `ios`. |
+| `flutter_version` | `string` | No | `"3.24.0"` | Flutter SDK version used during build. |
+| `build_ios` | `boolean` | No | `false` | Enables iOS build on `macos-14` runner. |
+| `run_deploy` | `boolean` | No | `false` | Enables store deployment step. |
+| `deploy_target` | `string` | No | `"none"` | Target: `firebase`, `play_internal`, `testflight`, or `none`. |
 
 ---
 
-## ⚡ Tối ưu Tốc độ Build (Caching)
+## 🔐 Required Secrets Reference (`secrets:`)
 
-Workflow đã tích hợp sẵn cơ chế **Cache đa tầng** giúp giảm thời gian build từ **8-10 phút xuống còn 2-3 phút**:
-- 📦 **Flutter Pub Cache**: Tự động lưu cache pub packages qua `subosito/flutter-action@v2`.
-- ☕ **Gradle Cache**: Tự động lưu Gradle Wrapper & Dependencies qua `setup-java@v4`.
-- 🍎 **CocoaPods Cache**: Tự động lưu `Pods` & Podspec Caches cho iOS runner qua `actions/cache@v4`.
+Declare only the secrets required for your active target platforms in **Settings ➔ Secrets and variables ➔ Actions**:
 
-## Nguyên tắc thiết kế (để dễ maintain)
+| Secret Name | Category | Description & Purpose | Setup Guide |
+|---|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | Android Build | Base64 encoded Keystore file used for signing release APK/AAB | — |
+| `ANDROID_KEYSTORE_PASSWORD` | Android Build | Passphrase to decrypt Keystore | — |
+| `PLAY_STORE_JSON_KEY_BASE64` | Google Play | Base64 encoded Service Account JSON key for Google Play API | [`docs/01-setup-play-store.md`](docs/01-setup-play-store.md) |
+| `ANDROID_PACKAGE_NAME` | Google Play | Application package name (e.g., `com.example.myapp`) | [`docs/01-setup-play-store.md`](docs/01-setup-play-store.md) |
+| `FIREBASE_APP_ID` | Firebase | Firebase App ID from Console (e.g., `1:1234:android:abcd`) | [`docs/03-setup-firebase.md`](docs/03-setup-firebase.md) |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | Firebase | Base64 encoded Firebase Service Account JSON key | [`docs/03-setup-firebase.md`](docs/03-setup-firebase.md) |
+| `FIREBASE_TESTER_GROUP` | Firebase | *(Optional)* Tester group name (Default: `internal-testers`) | [`docs/03-setup-firebase.md`](docs/03-setup-firebase.md) |
+| `APP_STORE_CONNECT_API_KEY_BASE64` | TestFlight | Base64 encoded App Store Connect Private API key (`.p8`) | [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) |
+| `APP_STORE_CONNECT_KEY_ID` | TestFlight | Key ID generated on App Store Connect | [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) |
+| `APP_STORE_CONNECT_ISSUER_ID` | TestFlight | Issuer ID of your Apple Developer Organization | [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) |
+| `MATCH_PASSWORD` | TestFlight | Passphrase to decrypt Fastlane Match certificates | [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) |
+| `MATCH_GIT_URL` | TestFlight | Private Git URL holding Fastlane Match encrypted certificates | [`docs/02-setup-testflight.md`](docs/02-setup-testflight.md) |
 
-- **Mỗi script làm đúng 1 việc** (`build-android.sh` chỉ build Android, không lint, không deploy).
-- **Không hard-code giá trị riêng của project** (tên app, bundle id...) trong `ci-templates` —
-  tất cả truyền qua `inputs`/`secrets` từ file gọi ở repo app.
-- **Fail nhanh, rõ ràng**: mỗi script có `set -euo pipefail` để dừng ngay khi lỗi, tránh build "giả vờ thành công".
-- **iOS luôn tách job riêng** vì cần macOS runner (đắt & chậm hơn), để không ép Android phải chờ.
+---
+
+## 📝 Release Notes Management
+
+Fastlane automatically inspects your application repository for release notes during deployment:
+* Fastlane reads release logs directly from `release_notes.txt` located in your repository root.
+* If `release_notes.txt` is missing, Fastlane automatically uses your **latest Git commit message** as the release changelog!
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check out the [issues page](https://github.com/gk182/ci-templates/issues).
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.

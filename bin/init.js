@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * CI/CD Template Initializer CLI
- * Interactive CLI generator for Mobile CI/CD Workflows (Arrow Key Navigation).
+ * Mobile CI/CD Pipeline Initializer CLI
+ * Interactive terminal workflow generator for Flutter, Native Android, and Native iOS.
  */
 
 const fs = require('fs');
@@ -11,20 +11,20 @@ const { execSync } = require('child_process');
 const readline = require('readline');
 
 // ANSI Color & Styling Tokens
-const C_RESET   = '\x1b[0m';
-const C_BOLD    = '\x1b[1m';
-const C_DIM     = '\x1b[2m';
-const C_CYAN    = '\x1b[36m';
-const C_GREEN   = '\x1b[32m';
-const C_YELLOW  = '\x1b[33m';
-const C_MAGENTA = '\x1b[35m';
-const C_GRAY    = '\x1b[90m';
-const C_WHITE   = '\x1b[37m';
-const BG_CYAN   = '\x1b[46m\x1b[30m';
+const C_RESET = '\x1b[0m';
+const C_BOLD = '\x1b[1m';
+const C_DIM = '\x1b[2m';
+const C_CYAN = '\x1b[36m';
+const C_GREEN = '\x1b[32m';
+const C_YELLOW = '\x1b[33m';
+const C_GRAY = '\x1b[90m';
+const C_WHITE = '\x1b[37m';
 const C_HIDE_CURSOR = '\x1b[?25l';
 const C_SHOW_CURSOR = '\x1b[?25h';
 
-// Helper: Tương tác bằng phím MŨI TÊN UP/DOWN
+/**
+ * Interactive Arrow-Key Menu Selector
+ */
 function selectMenu(title, options) {
   return new Promise((resolve) => {
     let selectedIndex = 0;
@@ -35,9 +35,8 @@ function selectMenu(title, options) {
     process.stdout.write(C_HIDE_CURSOR);
 
     function render() {
-      // Clear previous lines
       readline.cursorTo(process.stdout, 0);
-      console.log(`\n${C_BOLD}${C_CYAN}?${C_RESET} ${C_BOLD}${title}${C_RESET} ${C_GRAY}(Dùng phím ↑ ↓ để di chuyển, Enter để chọn)${C_RESET}\n`);
+      console.log(`\n${C_BOLD}${C_CYAN}?${C_RESET} ${C_BOLD}${title}${C_RESET} ${C_GRAY}(Use ↑ ↓ keys to navigate, Enter to select)${C_RESET}\n`);
 
       options.forEach((opt, idx) => {
         if (idx === selectedIndex) {
@@ -51,7 +50,6 @@ function selectMenu(title, options) {
     function onKeypress(str, key) {
       if (key.name === 'up') {
         selectedIndex = (selectedIndex - 1 + options.length) % options.length;
-        // Move cursor up to re-render
         readline.moveCursor(process.stdout, 0, -(options.length + 3));
         render();
       } else if (key.name === 'down') {
@@ -77,11 +75,13 @@ function selectMenu(title, options) {
   });
 }
 
-// Helper: Hỏi Yes/No dạng phím mũi tên
+/**
+ * Interactive Yes/No Selector
+ */
 function selectConfirm(title, defaultValue = true) {
   const options = [
-    { label: 'Yes', value: true, desc: '(Bật tính năng này)' },
-    { label: 'No',  value: false, desc: '(Bỏ qua)' }
+    { label: 'Yes', value: true, desc: '(Enable this feature)' },
+    { label: 'No', value: false, desc: '(Skip for now)' }
   ];
   if (!defaultValue) {
     options.reverse();
@@ -89,19 +89,21 @@ function selectConfirm(title, defaultValue = true) {
   return selectMenu(title, options);
 }
 
-// 1. Tự động phát hiện phiên bản Flutter / Dart SDK
+/**
+ * Automatically detects local or project Flutter SDK version
+ */
 function detectFlutterVersion() {
   try {
     const output = execSync('flutter --version', { encoding: 'utf8' });
     const match = output.match(/Flutter\ ([\d]+\.[\d]+\.[\d]+)/i);
     if (match && match[1]) return match[1];
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     const pubspecPath = path.join(process.cwd(), 'pubspec.yaml');
     if (fs.existsSync(pubspecPath)) {
       const content = fs.readFileSync(pubspecPath, 'utf8');
-      
+
       const flutterMatch = content.match(/flutter:\ [^\d]*([\d]+\.[\d]+\.[\d]+)/);
       if (flutterMatch && flutterMatch[1]) return flutterMatch[1];
 
@@ -115,14 +117,14 @@ function detectFlutterVersion() {
         if (dartVer === '3.3') return '3.19.0';
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 
   return '3.29.0';
 }
 
 async function main() {
   console.log(`\n${C_BOLD}${C_CYAN}┌──────────────────────────────────────────────────────────┐${C_RESET}`);
-  console.log(`${C_BOLD}${C_CYAN}│${C_RESET}  ${C_BOLD}${C_WHITE}MOBILE CI/CD WORKFLOW GENERATOR${C_RESET} ${C_GRAY}(gk182/ci-templates)${C_RESET}   ${C_BOLD}${C_CYAN}│${C_RESET}`);
+  console.log(`${C_BOLD}${C_CYAN}│${C_RESET}  ${C_BOLD}${C_WHITE}MOBILE CI/CD WORKFLOW GENERATOR${C_RESET} ${C_GRAY}(gk182/ci-templates)${C_RESET}    ${C_BOLD}${C_CYAN}│${C_RESET}`);
   console.log(`${C_BOLD}${C_CYAN}└──────────────────────────────────────────────────────────┘${C_RESET}`);
 
   const detectedFlutterVersion = detectFlutterVersion();
@@ -132,7 +134,7 @@ async function main() {
     {
       label: 'Flutter Basic',
       value: '1',
-      desc: 'Build APK Artifacts on Push/PR (No auto deployment)'
+      desc: 'Build APK artifacts on Push/PR (No automated deployment)'
     },
     {
       label: 'Flutter Multi-Branch',
@@ -156,14 +158,14 @@ async function main() {
     }
   ];
 
-  const selectedPreset = await selectMenu('Chọn loại cấu hình CI/CD:', presetOptions);
+  const selectedPreset = await selectMenu('Select CI/CD Pipeline Configuration:', presetOptions);
 
   let buildIos = false;
   if (['1', '2', '3'].includes(selectedPreset)) {
-    buildIos = await selectConfirm('Bật chế độ Build iOS (yêu cầu GitHub macOS runner)?', false);
+    buildIos = await selectConfirm('Enable iOS build target (requires macOS runner)?', false);
   }
 
-  const createNotes = await selectConfirm('Tự động khởi tạo file release_notes.txt mẫu?', true);
+  const createNotes = await selectConfirm('Generate a release_notes.txt template file?', true);
 
   let yamlContent = '';
   switch (selectedPreset) {
@@ -300,7 +302,7 @@ jobs:
       break;
   }
 
-  // Tạo thư mục .github/workflows
+  // Create .github/workflows directory
   const targetDir = path.join(process.cwd(), '.github', 'workflows');
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
@@ -314,8 +316,8 @@ jobs:
     const notesPath = path.join(process.cwd(), 'release_notes.txt');
     if (!fs.existsSync(notesPath)) {
       const defaultNotes = `Release Version:
-- Features:
-- Bugfixes:
+- New Features:
+- Bug Fixes:
 `;
       fs.writeFileSync(notesPath, defaultNotes, 'utf8');
       console.log(`${C_GREEN}✔ Created:${C_RESET} ${C_BOLD}release_notes.txt${C_RESET}`);
@@ -323,11 +325,11 @@ jobs:
   }
 
   console.log(`\n${C_BOLD}${C_GREEN}┌──────────────────────────────────────────────────────────┐${C_RESET}`);
-  console.log(`${C_BOLD}${C_GREEN}│${C_RESET}  ${C_BOLD}${C_WHITE}INITIALIZATION SUCCESSFUL!${C_RESET}                             ${C_BOLD}${C_GREEN}│${C_RESET}`);
+  console.log(`${C_BOLD}${C_GREEN}│${C_RESET}  ${C_BOLD}${C_WHITE}INITIALIZATION SUCCESSFUL! ${C_RESET}                             ${C_BOLD}${C_GREEN}│${C_RESET}`);
   console.log(`${C_BOLD}${C_GREEN}└──────────────────────────────────────────────────────────┘${C_RESET}`);
   console.log(`${C_GRAY}Next steps:${C_RESET}`);
-  console.log(`  1. Git commit & push .github/workflows/ci.yml`);
-  console.log(`  2. Add repository secrets in GitHub Settings -> Secrets\n`);
+  console.log(`  1. Commit and push .github/workflows/ci.yml`);
+  console.log(`  2. Configure secrets in Repository Settings -> Secrets and variables -> Actions\n`);
 }
 
 main();
