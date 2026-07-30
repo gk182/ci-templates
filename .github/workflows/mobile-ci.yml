@@ -9,11 +9,11 @@
 #   secrets: ...
 # Xem file mau day du trong examples/caller-workflow-flutter.yml
 #
-# ⚠️ QUAN TRONG: workflow nay tu checkout chinh no ("gk182/ci-templates") o 4 cho
-# (job lint-test, build-android, build-ios, deploy) de lay duoc scripts/ va fastlane/.
-# Neu ban FORK hoac DOI TEN repo nay, phai sua lai "gk182/ci-templates" thanh ten moi
-# o CA 4 CHO do (tim kiem "gk182/ci-templates" trong file nay) - khong sua se lam
-# toan bo CI cua moi project goi vao day bi vo.
+# ⚠️ QUAN TRỌNG: workflow này tự checkout repo template tại 4 chỗ
+# (job lint-test, build-android, build-ios, deploy) để lấy scripts/ và fastlane/.
+# Code dùng `${{ github.repository_owner }}/ci-templates` nên khi FORK sang org khác sẽ TỰ ĐỘNG nhận.
+# Tuy nhiên, nếu bạn ĐỔI TÊN repository (khác 'ci-templates'), cần sửa tên repo ở CẢ 4 CHỖ bên dưới.
+
 
 name: Mobile CI Reusable
 
@@ -136,6 +136,13 @@ jobs:
           repository: ${{ github.repository_owner }}/ci-templates
           path: ci-templates
 
+      - name: Setup Java JDK (with Gradle Caching)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
       - uses: subosito/flutter-action@v2
         if: inputs.project_type == 'flutter'
         with:
@@ -189,6 +196,16 @@ jobs:
           flutter-version: ${{ inputs.flutter_version }}
           channel: stable
           cache: true
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
 
       - name: Build IPA (khong sign, dung cho build kiem tra)
         env:

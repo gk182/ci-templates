@@ -1,0 +1,48 @@
+# File mẫu 2: Đa môi trường (Multi-branch Deploy)
+# - Nhánh develop: Deploy tự động lên Firebase App Distribution cho Tester thử nghiệm.
+# - Nhánh main: Deploy tự động lên Google Play (Internal) & TestFlight (iOS).
+# Đường dẫn tạo trong project con: <repo-app>/.github/workflows/ci.yml
+
+name: Multi-Branch CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # Job 1: Dành riêng cho nhánh develop (Thử nghiệm)
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: false             # Dev có thể tắt iOS để CI chạy nhanh hơn
+      run_deploy: true
+      deploy_target: firebase      # Deploy lên Firebase App Distribution
+    secrets: inherit
+
+  # Job 2: Dành riêng cho nhánh main (Chính thức)
+  deploy-prod:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: true              # Build cả iOS cho bản production
+      run_deploy: true
+      deploy_target: play_internal # Hoặc testflight tùy nhu cầu
+    secrets: inherit
+
+  # Job 3: Chạy Lint/Test cho Pull Request (Không deploy)
+  pr-check:
+    if: github.event_name == 'pull_request'
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: false
+      run_deploy: false
+    secrets: inherit

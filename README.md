@@ -77,32 +77,53 @@ Sau khi thêm secret, chạy `bundle exec fastlane doctor` để kiểm tra nhan
 (chi tiết trong `docs/00-tong-quan-fastlane.md`) — lệnh này **không** build, **không** deploy
 thật, chỉ báo ✅/⚠️ cho từng mục.
 
-## Secrets cần thiết
+## 📋 Bảng tra cứu Tham số Input (`with:`)
+
+Khai báo các tham số này trong mục `with:` của file gọi workflow ở repo app:
+
+| Tham số Input | Kiểu dữ liệu | Mặc định | Mô tả |
+|---|---|---|---|
+| `project_type` | `string` | **Bắt buộc** | Loại dự án: `flutter`, `android`, hoặc `ios`. |
+| `flutter_version` | `string` | `"3.24.0"` | Phiên bản Flutter SDK sử dụng khi build. |
+| `build_ios` | `boolean` | `false` | Có build bản iOS không (`true` cần runner `macos-14`, tốn thêm thời gian & chi phí). |
+| `run_deploy` | `boolean` | `false` | Cho phép chạy bước Deploy (`true` cho push `main`/`tag`, `false` cho PR/test). |
+| `deploy_target` | `string` | `"none"` | Đích đến khi deploy: `firebase`, `play_internal`, `testflight`, hoặc `none`. |
+
+---
+
+## 🔐 Bảng tra cứu Secrets (`secrets:`)
 
 Bảng đầy đủ — chỉ cần khai báo secret của nền tảng bạn thực sự dùng, không cần khai hết:
 
-| Secret | Dùng cho | Xem hướng dẫn |
-|---|---|---|
-| `ANDROID_KEYSTORE_BASE64` | Ký APK/AAB bản release | — |
-| `ANDROID_KEYSTORE_PASSWORD` | Ký APK/AAB bản release | — |
-| `PLAY_STORE_JSON_KEY_BASE64` | Xác thực API Play Console | `docs/01-setup-play-store.md` |
-| `ANDROID_PACKAGE_NAME` | Package name app Android | `docs/01-setup-play-store.md` |
-| `APP_STORE_CONNECT_API_KEY_BASE64` | Xác thực App Store Connect API | `docs/02-setup-testflight.md` |
-| `APP_STORE_CONNECT_KEY_ID` | Xác thực App Store Connect API | `docs/02-setup-testflight.md` |
-| `APP_STORE_CONNECT_ISSUER_ID` | Xác thực App Store Connect API | `docs/02-setup-testflight.md` |
-| `MATCH_PASSWORD` | Giải mã certificate/provisioning (fastlane match) | `docs/02-setup-testflight.md` |
-| `MATCH_GIT_URL` | Repo git riêng lưu certificate | `docs/02-setup-testflight.md` |
-| `APPLE_ID` | Email tài khoản Apple Developer | `docs/02-setup-testflight.md` |
-| `APPLE_TEAM_ID` | Team ID Developer Portal | `docs/02-setup-testflight.md` |
-| `ITC_TEAM_ID` | Team ID App Store Connect | `docs/02-setup-testflight.md` |
-| `IOS_BUNDLE_ID` | Bundle ID app iOS | `docs/02-setup-testflight.md` |
-| `FIREBASE_APP_ID` | Định danh app trên Firebase | `docs/03-setup-firebase.md` |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | Xác thực Firebase (thay cho token đã bị khai tử) | `docs/03-setup-firebase.md` |
-| `FIREBASE_TESTER_GROUP` | Nhóm tester nhận bản build | `docs/03-setup-firebase.md` (tuỳ chọn) |
+| Secret | Phân loại | Mô tả & Công dụng | Hướng dẫn |
+|---|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | Android Build | Keystore mã hóa dạng Base64 dùng để ký Release APK/AAB | — |
+| `ANDROID_KEYSTORE_PASSWORD` | Android Build | Mật khẩu giải mã Keystore | — |
+| `PLAY_STORE_JSON_KEY_BASE64` | Google Play | File JSON Service Account mã hóa Base64 để gọi API Google Play | `docs/01-setup-play-store.md` |
+| `ANDROID_PACKAGE_NAME` | Google Play | Package Name ứng dụng Android (VD: `com.example.myapp`) | `docs/01-setup-play-store.md` |
+| `FIREBASE_APP_ID` | Firebase | App ID trên Firebase Console (VD: `1:1234:android:abcd`) | `docs/03-setup-firebase.md` |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | Firebase | Service Account JSON Base64 dùng xác thực Firebase | `docs/03-setup-firebase.md` |
+| `FIREBASE_TESTER_GROUP` | Firebase | *(Tùy chọn)* Tên nhóm Testers nhận bản build (VD: `internal-testers`) | `docs/03-setup-firebase.md` |
+| `APP_STORE_CONNECT_API_KEY_BASE64` | TestFlight | Private Key API (.p8) mã hóa Base64 | `docs/02-setup-testflight.md` |
+| `APP_STORE_CONNECT_KEY_ID` | TestFlight | Key ID tạo trên App Store Connect | `docs/02-setup-testflight.md` |
+| `APP_STORE_CONNECT_ISSUER_ID` | TestFlight | Issuer ID của tổ chức Developer | `docs/02-setup-testflight.md` |
+| `MATCH_PASSWORD` | TestFlight | Mật khẩu giải mã Certificate/Provisioning (Fastlane Match) | `docs/02-setup-testflight.md` |
+| `MATCH_GIT_URL` | TestFlight | Git URL chứa kho Certificate riêng | `docs/02-setup-testflight.md` |
+| `APPLE_ID` | TestFlight | Email tài khoản Apple Developer | `docs/02-setup-testflight.md` |
+| `APPLE_TEAM_ID` | TestFlight | Team ID trên Developer Portal | `docs/02-setup-testflight.md` |
+| `ITC_TEAM_ID` | TestFlight | Team ID trên App Store Connect | `docs/02-setup-testflight.md` |
+| `IOS_BUNDLE_ID` | TestFlight | Bundle Identifier app iOS (VD: `com.example.myapp.ios`) | `docs/02-setup-testflight.md` |
 
-> ⚠️ TestFlight **bắt buộc** phải có Apple Developer Program (trả phí $99/năm) — không có
-> cách nào tự động hoá vượt qua yêu cầu này của Apple. Nếu chưa có, vẫn dùng được phần build
-> iOS (`build_ios: true`), chỉ cần để `deploy_target: none`.
+> ⚠️ **Lưu ý**: TestFlight **bắt buộc** phải có tài khoản Apple Developer Program (trả phí $99/năm). Nếu chưa có, bạn vẫn build được file iOS (`build_ios: true`) và để `deploy_target: none`.
+
+---
+
+## ⚡ Tối ưu Tốc độ Build (Caching)
+
+Workflow đã tích hợp sẵn cơ chế **Cache đa tầng** giúp giảm thời gian build từ **8-10 phút xuống còn 2-3 phút**:
+- 📦 **Flutter Pub Cache**: Tự động lưu cache pub packages qua `subosito/flutter-action@v2`.
+- ☕ **Gradle Cache**: Tự động lưu Gradle Wrapper & Dependencies qua `setup-java@v4`.
+- 🍎 **CocoaPods Cache**: Tự động lưu `Pods` & Podspec Caches cho iOS runner qua `actions/cache@v4`.
 
 ## Nguyên tắc thiết kế (để dễ maintain)
 
