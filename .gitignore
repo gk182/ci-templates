@@ -1,0 +1,22 @@
+.DS_Store
+*.log
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/Appfile
+fastlane/Matchfile
+
+# Credentials - KHONG BAO GIO commit cac file nay
+credentials/
+*.p8
+*.keystore
+*.jks
+*-key.json
+*.base64.txt
+
+# Bundler
+.bundle/
+vendor/bundle/

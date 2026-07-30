@@ -1,0 +1,26 @@
+# File mau: dat vao <repo-app>/.github/workflows/ci.yml
+# Copy nguyen file nay, chi can sua cac gia tri trong "with:" cho dung project cua ban.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  mobile-ci:
+    uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+    with:
+      project_type: flutter
+      flutter_version: "3.24.0"
+      build_ios: true                                   # false neu chua can build iOS
+      run_deploy: ${{ github.ref == 'refs/heads/main' }} # chi deploy khi push vao main
+      deploy_target: firebase                            # firebase | testflight | play_internal | none
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}

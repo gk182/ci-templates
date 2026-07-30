@@ -1,0 +1,250 @@
+# ci-templates/.github/workflows/mobile-ci.yml
+#
+# Reusable workflow dung chung cho cac app mobile (uu tien Flutter).
+# Cac repo app khac chi can goi vao workflow nay, khong copy-paste logic CI.
+#
+# Cach goi tu repo khac:
+#   uses: gk182/ci-templates/.github/workflows/mobile-ci.yml@main
+#   with: ...
+#   secrets: ...
+# Xem file mau day du trong examples/caller-workflow-flutter.yml
+#
+# ⚠️ QUAN TRONG: workflow nay tu checkout chinh no ("gk182/ci-templates") o 4 cho
+# (job lint-test, build-android, build-ios, deploy) de lay duoc scripts/ va fastlane/.
+# Neu ban FORK hoac DOI TEN repo nay, phai sua lai "gk182/ci-templates" thanh ten moi
+# o CA 4 CHO do (tim kiem "gk182/ci-templates" trong file nay) - khong sua se lam
+# toan bo CI cua moi project goi vao day bi vo.
+
+name: Mobile CI Reusable
+
+on:
+  workflow_call:
+    inputs:
+      project_type:
+        description: "flutter | android | ios"
+        required: true
+        type: string
+      flutter_version:
+        required: false
+        type: string
+        default: "3.24.0"
+      build_ios:
+        description: "Co build va deploy iOS khong (can macOS runner, ton phi/thoi gian hon)"
+        required: false
+        type: boolean
+        default: false
+      run_deploy:
+        description: "Chi bat khi push nhanh main/tag, false cho PR"
+        required: false
+        type: boolean
+        default: false
+      deploy_target:
+        description: "firebase | testflight | play_internal | none"
+        required: false
+        type: string
+        default: "none"
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: false
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+      # --- Play Store ---
+      PLAY_STORE_JSON_KEY_BASE64:
+        required: false
+      ANDROID_PACKAGE_NAME:
+        required: false
+      # --- Firebase App Distribution ---
+      FIREBASE_APP_ID:
+        required: false
+      FIREBASE_SERVICE_ACCOUNT_BASE64:
+        required: false
+      FIREBASE_TESTER_GROUP:
+        required: false
+      # --- TestFlight ---
+      APP_STORE_CONNECT_API_KEY_BASE64:
+        required: false
+      APP_STORE_CONNECT_KEY_ID:
+        required: false
+      APP_STORE_CONNECT_ISSUER_ID:
+        required: false
+      MATCH_PASSWORD:
+        required: false
+      MATCH_GIT_URL:
+        required: false
+      APPLE_ID:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
+      ITC_TEAM_ID:
+        required: false
+      IOS_BUNDLE_ID:
+        required: false
+
+
+jobs:
+  # ---------- 1) Lint + Test (luon chay, chi phi thap, chay tren ubuntu) ----------
+  lint-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code cua repo app
+        uses: actions/checkout@v4
+
+      - name: Checkout ci-templates (chua scripts dung chung)
+        uses: actions/checkout@v4
+        with:
+          repository: gk182/ci-templates
+          path: ci-templates
+
+      - name: Setup Flutter SDK
+        if: inputs.project_type == 'flutter'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ inputs.flutter_version }}
+          channel: stable
+          cache: true
+
+      - name: Cai dependency
+        if: inputs.project_type == 'flutter'
+        run: bash ci-templates/scripts/setup-flutter.sh
+
+      - name: Chay lint + test
+        if: inputs.project_type == 'flutter'
+        run: bash ci-templates/scripts/run-tests.sh
+
+      - name: Upload test report
+        if: always() && inputs.project_type == 'flutter'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: coverage/
+          if-no-files-found: ignore
+
+  # ---------- 2) Build Android (song song voi iOS, khong phu thuoc nhau) ----------
+  build-android:
+    name: Build Android
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout ci-templates (chua scripts dung chung)
+        uses: actions/checkout@v4
+        with:
+          repository: gk182/ci-templates
+          path: ci-templates
+
+      - uses: subosito/flutter-action@v2
+        if: inputs.project_type == 'flutter'
+        with:
+          flutter-version: ${{ inputs.flutter_version }}
+          channel: stable
+          cache: true
+
+      - name: Giai ma keystore (neu co, dung cho build release)
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+
+      - name: Build APK + AAB
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: bash ci-templates/scripts/build-android.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/bundle/release/*.aab
+          if-no-files-found: ignore
+
+  # ---------- 3) Build iOS (chi chay khi build_ios=true, can macOS runner) ----------
+  build-ios:
+    name: Build iOS
+    needs: lint-test
+    if: inputs.build_ios == true
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout ci-templates (chua scripts dung chung)
+        uses: actions/checkout@v4
+        with:
+          repository: gk182/ci-templates
+          path: ci-templates
+
+      - uses: subosito/flutter-action@v2
+        if: inputs.project_type == 'flutter'
+        with:
+          flutter-version: ${{ inputs.flutter_version }}
+          channel: stable
+          cache: true
+
+      - name: Build IPA (khong sign, dung cho build kiem tra)
+        run: bash ci-templates/scripts/build-ios.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: ignore
+
+  # ---------- 4) Deploy (chi khi run_deploy=true, sau khi build xong) ----------
+  deploy:
+    name: Deploy
+    needs: [build-android, build-ios]
+    # neu build-ios bi skip (build_ios=false) van cho phep deploy tiep tuc
+    if: |
+      always() &&
+      inputs.run_deploy == true &&
+      needs.build-android.result == 'success' &&
+      (needs.build-ios.result == 'success' || needs.build-ios.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout ci-templates (chua Fastfile + Gemfile)
+        uses: actions/checkout@v4
+        with:
+          repository: gk182/ci-templates
+          path: ci-templates
+
+      - name: Tai lai artifact da build
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Cai Ruby + Fastlane (theo dung version ghim trong Gemfile)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: ci-templates
+
+      - name: Giai ma credentials (tu bo qua neu chua cau hinh)
+        env:
+          PLAY_STORE_JSON_KEY_BASE64: ${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: bash ci-templates/scripts/decode-credentials.sh
+
+      - name: Deploy qua Fastlane
+        env:
+          DEPLOY_TARGET: ${{ inputs.deploy_target }}
+          ANDROID_PACKAGE_NAME: ${{ secrets.ANDROID_PACKAGE_NAME }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_TESTER_GROUP: ${{ secrets.FIREBASE_TESTER_GROUP }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+        run: |
+          cd ci-templates
+          bundle exec fastlane deploy target:"$DEPLOY_TARGET"

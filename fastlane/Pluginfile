@@ -1,0 +1,2 @@
+# Tu dong sinh ra boi `fastlane add_plugin`, khai bao o day de bundler quan ly.
+gem 'fastlane-plugin-firebase_app_distribution'

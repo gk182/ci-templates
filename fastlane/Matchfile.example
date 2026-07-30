@@ -1,0 +1,10 @@
+# Copy thanh "fastlane/Matchfile" trong repo app cua ban.
+# match dung de dong bo certificate/provisioning profile iOS qua nhieu may/nhieu project,
+# luu trong 1 repo git RIENG (private, KHAC voi repo code chinh) va ma hoa bang MATCH_PASSWORD.
+# Xem huong dan tao repo nay trong docs/02-setup-testflight.md
+
+git_url(ENV["MATCH_GIT_URL"])   # vi du: https://github.com/your-org/certificates.git
+storage_mode("git")
+type("appstore")                # appstore | adhoc | development
+app_identifier(ENV["IOS_BUNDLE_ID"])
+username(ENV["APPLE_ID"])

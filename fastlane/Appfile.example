@@ -1,0 +1,14 @@
+# Copy file nay thanh "fastlane/Appfile" (bo duoi .example) trong repo app cua ban,
+# roi thay cac bien moi truong tuong ung khi chay (hoac dien cung gia tri neu chi dung local).
+#
+# File nay KHONG chua secret truc tiep - no chi doc tu ENV, nen an toan de commit len git.
+
+# --- Android (Play Console) ---
+json_key_file(ENV["PLAY_STORE_JSON_KEY_PATH"])   # duong dan file service account JSON, xem docs/01-setup-play-store.md
+package_name(ENV["ANDROID_PACKAGE_NAME"])         # vi du: com.yourcompany.appname (phai khop applicationId trong android/app/build.gradle)
+
+# --- iOS (App Store Connect / TestFlight) ---
+apple_id(ENV["APPLE_ID"])           # email tai khoan Apple Developer, xem docs/02-setup-testflight.md
+team_id(ENV["APPLE_TEAM_ID"])       # Team ID tren Developer Portal (developer.apple.com/account, muc Membership)
+itc_team_id(ENV["ITC_TEAM_ID"])     # Team ID tren App Store Connect (thuong la so, khac voi team_id o tren)
+app_identifier(ENV["IOS_BUNDLE_ID"]) # vi du: com.yourcompany.appname

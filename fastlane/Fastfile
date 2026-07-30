@@ -1,0 +1,187 @@
+# ci-templates/fastlane/Fastfile
+#
+# Cac lane dung chung cho deploy Android/iOS.
+# Nguyen tac: MOI bien moi truong/file bat buoc deu duoc kiem tra truoc khi dung,
+# neu thieu se bao loi RO RANG (chi ro thieu gi, xem huong dan o dau) thay vi
+# fail voi thong bao khong hieu duoc cua fastlane/API goc.
+
+default_platform(:android)
+
+# ---------------------------------------------------------------------------
+# HELPER: kiem tra dieu kien truoc khi chay, bao loi de hieu neu thieu
+# ---------------------------------------------------------------------------
+
+def require_env!(name, doc_hint)
+  value = ENV[name]
+  if value.nil? || value.strip.empty?
+    UI.user_error!(<<~MSG)
+
+      ❌ Thieu bien moi truong/secret: #{name}
+      👉 Xem huong dan setup tai: #{doc_hint}
+         (Neu chay tren GitHub Actions: kiem tra lai phan "secrets:" trong file
+          .github/workflows/ci.yml o repo app cua ban)
+    MSG
+  end
+  value
+end
+
+def require_file!(path, label, doc_hint)
+  if path.nil? || path.strip.empty? || !File.exist?(path)
+    UI.user_error!(<<~MSG)
+
+      ❌ Khong tim thay file: #{label} (duong dan: #{path.inspect})
+      👉 Xem huong dan setup tai: #{doc_hint}
+    MSG
+  end
+  path
+end
+
+def require_build_artifact!(glob_pattern, label)
+  # Luu y ky thuat: code user trong Fastfile chay voi cwd = thu muc "fastlane/",
+  # nhung cac action cua Fastlane (upload_to_play_store, pilot, firebase_app_distribution...)
+  # lai chay voi cwd = thu muc goc project (ngang Fastfile). De tranh lech nhau giua 2 cwd
+  # nay, LUON tra ve duong dan TUYET DOI (File.expand_path) thay vi duong dan tuong doi.
+  file = Dir.glob(glob_pattern).first
+  if file.nil?
+    UI.user_error!(<<~MSG)
+
+      ❌ Khong tim thay file build: #{label}
+      👉 Chay job build tuong ung truoc khi deploy (xem README.md, phan "Luong CI/CD")
+    MSG
+  end
+  File.expand_path(file)
+end
+
+# ---------------------------------------------------------------------------
+# LANE TRUNG TAM - repo app chi can goi "fastlane deploy target:<ten>"
+# ---------------------------------------------------------------------------
+
+lane :deploy do |options|
+  target = options[:target] || ENV["DEPLOY_TARGET"] || "none"
+
+  case target
+  when "firebase"      then deploy_firebase
+  when "play_internal" then deploy_play_internal
+  when "testflight"    then deploy_testflight
+  when "none"
+    UI.important("deploy_target = none -> khong deploy gi (chi build).")
+  else
+    UI.user_error!("target khong hop le: #{target.inspect}. Gia tri hop le: firebase | play_internal | testflight | none")
+  end
+end
+
+# ---------------------------------------------------------------------------
+# LANE KIEM TRA MOI TRUONG - chay thu de biet minh da setup du chua,
+# KHONG build, KHONG deploy that. Dung: bundle exec fastlane doctor
+# ---------------------------------------------------------------------------
+
+desc "Kiem tra xem cac secret/file can thiet da san sang chua cho tung nen tang"
+lane :doctor do
+  UI.header("Fastlane doctor - kiem tra cau hinh")
+
+  check = lambda do |label, present|
+    UI.message("#{present ? '✅' : '⚠️ '} #{label}#{present ? '' : ' (chua co)'}")
+  end
+
+  UI.message("--- Play Store (deploy_target: play_internal) ---")
+  check.call("PLAY_STORE_JSON_KEY_PATH", ENV["PLAY_STORE_JSON_KEY_PATH"] && File.exist?(ENV["PLAY_STORE_JSON_KEY_PATH"].to_s))
+  check.call("ANDROID_PACKAGE_NAME", !ENV["ANDROID_PACKAGE_NAME"].to_s.empty?)
+
+  UI.message("--- Firebase App Distribution (deploy_target: firebase) ---")
+  check.call("FIREBASE_APP_ID", !ENV["FIREBASE_APP_ID"].to_s.empty?)
+  check.call("FIREBASE_SERVICE_ACCOUNT_PATH", ENV["FIREBASE_SERVICE_ACCOUNT_PATH"] && File.exist?(ENV["FIREBASE_SERVICE_ACCOUNT_PATH"].to_s))
+
+  UI.message("--- TestFlight (deploy_target: testflight) ---")
+  check.call("APP_STORE_CONNECT_API_KEY_PATH", ENV["APP_STORE_CONNECT_API_KEY_PATH"] && File.exist?(ENV["APP_STORE_CONNECT_API_KEY_PATH"].to_s))
+  check.call("APP_STORE_CONNECT_KEY_ID", !ENV["APP_STORE_CONNECT_KEY_ID"].to_s.empty?)
+  check.call("APP_STORE_CONNECT_ISSUER_ID", !ENV["APP_STORE_CONNECT_ISSUER_ID"].to_s.empty?)
+  check.call("MATCH_PASSWORD", !ENV["MATCH_PASSWORD"].to_s.empty?)
+  check.call("MATCH_GIT_URL", !ENV["MATCH_GIT_URL"].to_s.empty?)
+
+  UI.message("")
+  UI.important("Muc nao dang ⚠️  thi xem huong dan trong docs/ tuong ung truoc khi deploy that.")
+end
+
+# ---------------------------------------------------------------------------
+# ANDROID
+# ---------------------------------------------------------------------------
+platform :android do
+  desc "Deploy APK len Firebase App Distribution"
+  lane :deploy_firebase do
+    app_id    = require_env!("FIREBASE_APP_ID", "docs/03-setup-firebase.md")
+    cred_file = require_file!(ENV["FIREBASE_SERVICE_ACCOUNT_PATH"], "Firebase service account JSON", "docs/03-setup-firebase.md")
+    apk_path  = require_build_artifact!("../../dist/**/*.apk", "Android APK")
+
+    # Luu y: Firebase da khai tu cach xac thuc bang firebase_cli_token (FIREBASE_TOKEN),
+    # nen o day dung service_credentials_file thay vi firebase_cli_token.
+    firebase_app_distribution(
+      app: app_id,
+      service_credentials_file: cred_file,
+      android_artifact_type: "APK",
+      android_artifact_path: apk_path,
+      groups: ENV["FIREBASE_TESTER_GROUP"] || "internal-testers"
+    )
+  end
+
+  desc "Day AAB len Play Console, internal testing track"
+  lane :deploy_play_internal do
+    json_key = require_file!(ENV["PLAY_STORE_JSON_KEY_PATH"], "Play Store service account JSON", "docs/01-setup-play-store.md")
+    aab_path = require_build_artifact!("../../dist/**/*.aab", "Android AAB (build release)")
+
+    begin
+      upload_to_play_store(
+        json_key: json_key,
+        track: "internal",
+        aab: aab_path,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true
+      )
+    rescue StandardError => e
+      if e.message =~ /was not found|no application/i
+        UI.user_error!(<<~MSG)
+
+          ❌ Play Console chua nhan dien duoc app nay qua API.
+          👉 Neu day la APP MOI (chua tung upload len Play Console), Google BAT BUOC ban
+             phai tu tay upload 1 ban release dau tien qua giao dien web Play Console
+             truoc khi API tu dong hoat dong duoc - day la gioi han cua Google, khong
+             the bo qua bang cau hinh.
+          Xem chi tiet cac buoc: docs/01-setup-play-store.md
+        MSG
+      else
+        raise e
+      end
+    end
+  end
+end
+
+# ---------------------------------------------------------------------------
+# IOS
+# ---------------------------------------------------------------------------
+platform :ios do
+  desc "Deploy IPA len TestFlight"
+  lane :deploy_testflight do
+    api_key_path = require_file!(ENV["APP_STORE_CONNECT_API_KEY_PATH"], "App Store Connect API key (.p8)", "docs/02-setup-testflight.md")
+    key_id       = require_env!("APP_STORE_CONNECT_KEY_ID", "docs/02-setup-testflight.md")
+    issuer_id    = require_env!("APP_STORE_CONNECT_ISSUER_ID", "docs/02-setup-testflight.md")
+    require_env!("MATCH_PASSWORD", "docs/02-setup-testflight.md")
+    require_env!("MATCH_GIT_URL", "docs/02-setup-testflight.md")
+    ipa_path     = require_build_artifact!("../../dist/**/*.ipa", "iOS IPA (build_ios: true)")
+
+    api_key = app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: api_key_path
+    )
+
+    # readonly: true de CI khong tu tao/sua certificate, chi lay ve cai da co san
+    # (certificate nen duoc tao 1 lan boi nguoi tren may local, xem docs/02-setup-testflight.md)
+    match(type: "appstore", readonly: true, api_key: api_key)
+
+    pilot(
+      ipa: ipa_path,
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end
